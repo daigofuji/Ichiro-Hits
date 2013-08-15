@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+body {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.x.axis path {
+  display: none;
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.js"></script>
+<script>
+/* setting margin, width and height */
+var margin = {top: 20, right: 80, bottom: 30, left: 50},
+    width = 960 - margin.left - margin.right,
+    height = 550 - margin.top - margin.bottom;
+
+// Scales. Note the inverted domain for the y-scale: bigger is up!
+var x = d3.scale.linear()
+    .range([0, width]);
+var y = d3.scale.linear()
+    .range([height, 0]);
+
+
+// A line generator, for the dark stroke. changed basis from monochrome
+var line = d3.svg.line()
+    .interpolate("basis")
+    .x(function(d) { return x(d.age); })
+    .y(function(d) { return y(d.tot); });
+
+// what does this do?
+var color = d3.scale.category10();
+
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom");
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left");
+
+
+ var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+d3.tsv("hits-datav2.tsv", function(error, data) {
+   color.domain(d3.keys(data[0]).filter(function(key) { return key !== "age"; }));
+
+  // Nest values by symbol.
+  var players = d3.nest()
+      .key(function(d) { return d.player; })
+      .entries(data);
+
+  // Parse ages and numbers. We assume values are sorted by age.
+  // Also compute the maximum Tot per player, needed for the y-domain.
+  players.forEach(function(s) {
+    s.values.forEach(function(d) { d.age = +d.age; d.tot = +d.tot; });
+    s.maxTot = d3.max(s.values, function(d) { return d.tot; });
+  });
+  y.domain ([0, 4200]);
+  // Compute the minimum and maximum age across players.
+  x.domain([
+    d3.min(players, function(s) { return s.values[0].age; }),
+    d3.max(players, function(s) { return s.values[s.values.length - 1].age; })
+  ]);
+
+
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis);
+
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+    .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("Total number of hits");
+
+var player = svg.selectAll(".player")
+      .data(players)
+    .enter().append("g")
+      .attr("class", "player");
+
+  player.append("path")
+      .attr("class", "line")
+      .attr("d", function(d) { return line(d.values); })
+      .style("stroke", function(d) { return color(d.player); });
+
+  player.append("text")
+      .datum(function(d) { return {name: d.player, value: d.values[d.values.length - 1]}; })
+      .attr("transform", function(d) { return "translate(" + x(d.value.age) + "," + y(d.value.tot) + ")"; })
+      .attr("x", 3)
+      .attr("dy", ".35em")
+      .text(function(d) { return d.player; });
+
+
+
+  // Add an SVG element for each player, with the desired dimensions and margin.
+/*  var svg = d3.select("body").selectAll("svg")
+      .data(players)
+    .enter().append("svg:svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("svg:g")
+      .attr("transform", "translate(" + margin.bottom + "," + margin.top + ")");
+*/
+  // Add the area path elements. Note: the y-domain is set per element.
+  /*svg.append("svg:path")
+      .attr("class", "area")
+      .attr("d", function(d) { y.domain([0, d.maxTot]); return area(d.values); });
+*/
+  // Add the line path elements. Note: the y-domain is set per element.
+  /*svg.append("svg:path")
+      .attr("class", "line")
+      .attr("d", function(d) { y.domain([0, d.maxTot]); return line(d.values); });
+*/
+  // Add a small label for the player name.
+ /* svg.append("svg:text")
+      .attr("x", width - 6)
+      .attr("y", height - 6)
+      .attr("text-anchor", "end")
+      .text(function(d) { return d.key; });
+      */
+});
+
+/*
+   color.domain(d3.keys(data[0]).filter(function(key) { return key !== "age"; }));
+
+  /* data.forEach(function(d) {
+    d.age = parseage(d.age);
+  });*/
+/*
+  var players = color.domain().map(function(name) {
+    return {
+      name: name,
+      values: data.map(function(d) {
+        return {age: d.age, hits: d[name]};
+      })
+    };
+  });
+
+  x.domain(d3.extent(data, function(d) { return d.age; }));
+
+  y.domain([0,4300]);*/
+  /* y.domain([
+    d3.min(hitters, function(c) { return d3.min(c.values, function(v) { return v.hits; }); }),
+    d3.max(hitters, function(c) { return d3.max(c.values, function(v) { return v.hits; }); })
+  ]); */
+/*
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis);
+
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+    .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("Total number of hits");
+
+  var hitter = svg.selectAll(".hitter")
+      .data(hitters)
+    .enter().append("g")
+      .attr("class", "hitter");
+
+  hitter.append("path")
+      .attr("class", "line")
+      .attr("d", function(d) { return line(d.values); })
+      .style("stroke", function(d) { return color(d.name); });
+
+  hitter.append("text")
+      .datum(function(d) { return {name: d.name, value: d.values[d.values.length - 1]}; })
+      .attr("transform", function(d) { return "translate(" + x(d.value.age) + "," + y(d.value.hits) + ")"; })
+      .attr("x", 3)
+      .attr("dy", ".35em")
+      .text(function(d) { return d.name; });
+});
+*/
+</script>
